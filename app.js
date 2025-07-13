@@ -3,6 +3,7 @@ const path = require('path');
 
 // External Module
 const express = require('express');
+const multer = require('multer');
 
 //Local Module
 const storeRouter = require("./routes/storeRouter")
@@ -39,7 +40,45 @@ const store = new MongoDBStore({
   collection: 'sessions'
 });
 
+const randomString = ()=>{
+  const char = "abcdefghijklmnopqrstuvwxyz";
+  let result = "";
+  for (let i = 0; i < 10; i++) {
+    result += char.charAt(Math.floor(Math.random() * char.length));
+  }
+  return result;
+
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/')
+  },
+  filename: (req, file, cb) => {
+    const fileName = randomString(10) + '-' + file.originalname;
+    cb(null, fileName);
+  }
+
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+}
+
+const multerOption = {
+  storage,fileFilter
+}
+
 app.use(express.urlencoded());
+app.use(multer(multerOption).single('photoUrl'));
+app.use(express.static(path.join(rootDir, 'public')))
+app.use("/uploads",express.static(path.join(rootDir, 'uploads')))
+app.use("host/uploads",express.static(path.join(rootDir, 'uploads')))
+
 app.use(
   session({
     secret: 'mysecret',
@@ -70,7 +109,6 @@ app.use("/host", hostRouter);
 
 
 
-app.use(express.static(path.join(rootDir, 'public')))
 
 app.use(errorsController.pageNotFound);
 
